@@ -84,3 +84,90 @@ TEST_CASE("invalid private key rejected") {
         ingot::SigningKey<ingot::Secp256k1>("0x0000000000000000000000000000000000000000000000000000000000000000"),
         std::invalid_argument);
 }
+
+// --- RLP encoding tests ---
+
+TEST_CASE("rlp encode empty string") {
+    std::vector<uint8_t> encoded;
+    ingot::RlpEncoder::encode_empty(encoded);
+    CHECK(encoded == std::vector<uint8_t>{0x80});
+}
+
+TEST_CASE("rlp encode single byte") {
+    std::vector<uint8_t> encoded;
+    uint8_t data[] = {0x42};
+    ingot::RlpEncoder::encode(encoded, data);
+    CHECK(encoded == std::vector<uint8_t>{0x42});
+}
+
+TEST_CASE("rlp encode short string") {
+    // "dog" = 0x83, 'd', 'o', 'g'
+    std::vector<uint8_t> encoded;
+    std::string_view dog = "dog";
+    auto data = std::span<const uint8_t>(
+        reinterpret_cast<const uint8_t*>(dog.data()), dog.size());
+    ingot::RlpEncoder::encode(encoded, data);
+    CHECK(encoded == std::vector<uint8_t>{0x83, 0x64, 0x6f, 0x67});
+}
+
+TEST_CASE("rlp encode uint zero") {
+    std::vector<uint8_t> encoded;
+    ingot::RlpEncoder::encode_uint(encoded, 0);
+    CHECK(encoded == std::vector<uint8_t>{0x80});
+}
+
+TEST_CASE("rlp encode uint small") {
+    std::vector<uint8_t> encoded;
+    ingot::RlpEncoder::encode_uint(encoded, 127);
+    CHECK(encoded == std::vector<uint8_t>{0x7f});
+}
+
+TEST_CASE("rlp encode uint 1024") {
+    // 1024 = 0x0400, big-endian = [0x04, 0x00]
+    std::vector<uint8_t> encoded;
+    ingot::RlpEncoder::encode_uint(encoded, 1024);
+    CHECK(encoded == std::vector<uint8_t>{0x82, 0x04, 0x00});
+}
+
+TEST_CASE("rlp encode empty list") {
+    std::vector<uint8_t> encoded;
+    ingot::RlpEncoder::encode_list(encoded, std::vector<uint8_t>{});
+    CHECK(encoded == std::vector<uint8_t>{0xc0});
+}
+
+// --- Transaction signing tests ---
+
+TEST_CASE("sign_transaction produces valid envelope") {
+    ingot::SigningKey<ingot::Secp256k1> signer(TEST_PRIVATE_KEY);
+
+    ingot::Transaction tx;
+    tx.chain_id = 1;
+    tx.nonce = 0;
+    tx.max_priority_fee_per_gas = 1000000000;  // 1 gwei
+    tx.max_fee_per_gas = 20000000000;           // 20 gwei
+    tx.gas_limit = 21000;
+    tx.to = ingot::Address("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+
+    auto raw = signer.sign_transaction(tx);
+
+    // Must start with type byte 0x02
+    CHECK(raw[0] == 0x02);
+    // Must be longer than just the type byte
+    CHECK(raw.size() > 100);
+}
+
+TEST_CASE("sign_transaction is deterministic") {
+    ingot::SigningKey<ingot::Secp256k1> signer(TEST_PRIVATE_KEY);
+
+    ingot::Transaction tx;
+    tx.chain_id = 1;
+    tx.nonce = 7;
+    tx.max_priority_fee_per_gas = 1000000000;
+    tx.max_fee_per_gas = 20000000000;
+    tx.gas_limit = 21000;
+    tx.to = ingot::Address("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+
+    auto raw1 = signer.sign_transaction(tx);
+    auto raw2 = signer.sign_transaction(tx);
+    CHECK(raw1 == raw2);
+}

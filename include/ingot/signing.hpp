@@ -2,13 +2,13 @@
 
 #include "ingot/keccak.hpp"
 #include "ingot/secure_zero.hpp"
+#include "ingot/transaction.hpp"
 #include "ingot/types.hpp"
 
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
 
 #include <cstring>
-#include <memory>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -24,7 +24,6 @@ class SigningKey;
 template <>
 class SigningKey<Secp256k1> {
 public:
-    // [C2 fix] Parse hex directly into secret_ — no intermediate Hash temp
     explicit SigningKey(std::string_view hex) {
         if (hex.starts_with("0x") || hex.starts_with("0X"))
             hex.remove_prefix(2);
@@ -34,9 +33,8 @@ public:
             secret_[i] = static_cast<uint8_t>(
                 (hex_val(hex[i * 2]) << 4) | hex_val(hex[i * 2 + 1]));
         }
-        // [H2 fix] If init() throws, zero secret_ since destructor won't run
         try {
-            init();
+            verify_key();
         } catch (...) {
             secure_zero(secret_.data(), 32);
             throw;
@@ -46,7 +44,7 @@ public:
     explicit SigningKey(std::span<const uint8_t, 32> private_key) {
         std::memcpy(secret_.data(), private_key.data(), 32);
         try {
-            init();
+            verify_key();
         } catch (...) {
             secure_zero(secret_.data(), 32);
             throw;
@@ -54,16 +52,13 @@ public:
     }
 
     ~SigningKey() {
-        // [H1 fix] Use explicit_bzero — guaranteed not optimized away
         secure_zero(secret_.data(), 32);
     }
 
     SigningKey(const SigningKey&) = delete;
     SigningKey& operator=(const SigningKey&) = delete;
 
-    // [C1 fix] Explicit move that zeros the source key
-    SigningKey(SigningKey&& other) noexcept
-        : secret_(other.secret_), ctx_(std::move(other.ctx_)) {
+    SigningKey(SigningKey&& other) noexcept : secret_(other.secret_) {
         secure_zero(other.secret_.data(), 32);
     }
 
@@ -71,7 +66,6 @@ public:
         if (this != &other) {
             secure_zero(secret_.data(), 32);
             secret_ = other.secret_;
-            ctx_ = std::move(other.ctx_);
             secure_zero(other.secret_.data(), 32);
         }
         return *this;
@@ -81,7 +75,7 @@ public:
     [[nodiscard]] Signature sign(const Hash& msg_hash) const {
         secp256k1_ecdsa_recoverable_signature raw_sig;
         if (!secp256k1_ecdsa_sign_recoverable(
-                ctx_.get(), &raw_sig, msg_hash.data(), secret_.data(),
+                ctx(), &raw_sig, msg_hash.data(), secret_.data(),
                 nullptr, nullptr)) {
             throw std::runtime_error("secp256k1 signing failed");
         }
@@ -89,14 +83,13 @@ public:
         uint8_t out[64];
         int recid;
         secp256k1_ecdsa_recoverable_signature_serialize_compact(
-            ctx_.get(), out, &recid, &raw_sig);
+            ctx(), out, &recid, &raw_sig);
 
         Signature sig;
         sig.r = FixedBytes<32>(std::span<const uint8_t>(out, 32));
         sig.s = FixedBytes<32>(std::span<const uint8_t>(out + 32, 32));
         sig.v = static_cast<uint8_t>(recid);
 
-        // [H3 fix] Zero nonce-bearing intermediates
         secure_zero(&raw_sig, sizeof(raw_sig));
         secure_zero(out, sizeof(out));
 
@@ -128,41 +121,68 @@ public:
         return sign(h);
     }
 
+    // Sign an EIP-1559 transaction. Encodes fields once for both
+    // the signing hash and the final signed envelope.
+    [[nodiscard]] std::vector<uint8_t> sign_transaction(const Transaction& tx) const {
+        // Encode the 9 unsigned fields once
+        std::vector<uint8_t> fields;
+        tx.encode_fields(fields);
+
+        // Signing hash: keccak256(0x02 || rlp_list(fields))
+        std::vector<uint8_t> preimage;
+        preimage.push_back(0x02);
+        RlpEncoder::encode_list(preimage, fields);
+        auto hash_bytes = keccak256(std::span<const uint8_t>(preimage));
+        Hash hash(std::span<const uint8_t>(hash_bytes.data(), 32));
+
+        auto sig = sign(hash);
+
+        // Append signature to the same fields buffer
+        RlpEncoder::encode_bool(fields, sig.v != 0);
+        RlpEncoder::encode_uint256(fields,
+            std::span<const uint8_t, 32>(sig.r.data(), 32));
+        RlpEncoder::encode_uint256(fields,
+            std::span<const uint8_t, 32>(sig.s.data(), 32));
+
+        // Final envelope: 0x02 || rlp_list(all_fields)
+        std::vector<uint8_t> result;
+        result.push_back(0x02);
+        RlpEncoder::encode_list(result, fields);
+        return result;
+    }
+
     // Derive the Ethereum address from this key's public key
     [[nodiscard]] Address address() const {
         secp256k1_pubkey pubkey;
-        if (!secp256k1_ec_pubkey_create(ctx_.get(), &pubkey, secret_.data()))
+        if (!secp256k1_ec_pubkey_create(ctx(), &pubkey, secret_.data()))
             throw std::runtime_error("failed to derive public key");
 
         uint8_t serialized[65];
         std::size_t len = 65;
         secp256k1_ec_pubkey_serialize(
-            ctx_.get(), serialized, &len, &pubkey,
+            ctx(), serialized, &len, &pubkey,
             SECP256K1_EC_UNCOMPRESSED);
 
-        // Ethereum address = last 20 bytes of keccak256(pubkey[1..65])
         auto hash = keccak256(std::span<const uint8_t>(serialized + 1, 64));
         return Address(std::span<const uint8_t>(hash.data() + 12, 20));
     }
 
 private:
-    struct CtxDeleter {
-        void operator()(secp256k1_context* c) const {
-            secp256k1_context_destroy(c);
-        }
-    };
-
     std::array<uint8_t, 32> secret_{};
-    std::unique_ptr<secp256k1_context, CtxDeleter> ctx_;
 
-    // [M3 fix] Null-check context creation
-    void init() {
-        auto* raw = secp256k1_context_create(
-            SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
-        if (!raw)
-            throw std::runtime_error("failed to create secp256k1 context");
-        ctx_.reset(raw);
-        if (!secp256k1_ec_seckey_verify(ctx_.get(), secret_.data()))
+    // Shared secp256k1 context — created once, thread-safe for signing.
+    // Sign-only: no verify precomputation tables (~130KB saving).
+    static secp256k1_context* ctx() {
+        static secp256k1_context* c = [] {
+            auto* p = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
+            if (!p) throw std::runtime_error("failed to create secp256k1 context");
+            return p;
+        }();
+        return c;
+    }
+
+    void verify_key() {
+        if (!secp256k1_ec_seckey_verify(ctx(), secret_.data()))
             throw std::invalid_argument("invalid private key");
     }
 

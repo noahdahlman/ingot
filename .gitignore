@@ -1,5 +1,7 @@
 build/
 site/
 subprojects/libsecp256k1/
+subprojects/doctest-*/
 subprojects/packagecache/
 tests/viem_compare/node_modules/
+**/target

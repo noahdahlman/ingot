@@ -1,5 +1,5 @@
 import { privateKeyToAccount } from "viem/accounts";
-import { keccak256, toHex, toBytes, hashMessage } from "viem";
+import { keccak256, toHex, toBytes, hashMessage, serializeTransaction } from "viem";
 import { execFileSync } from "node:child_process";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -83,6 +83,70 @@ for (const { name, message } of vectors) {
     console.log(`[FAIL] personal_sign("${name}")`);
     console.log(`  viem: ${viemSig}`);
     console.log(`  C++:  ${cppSig}`);
+    failed++;
+  }
+}
+
+// --- Transaction signing cross-validation ---
+
+console.log(`\n--- Transaction signing ---\n`);
+
+// Parse C++ tx results
+const cppTxResults = new Map<string, string>();
+for (const line of cppLines) {
+  const parts = line.split("|");
+  if (parts[0].startsWith("tx_")) {
+    cppTxResults.set(parts[0], parts[1]);
+  }
+}
+
+// tx_simple: 0 value, nonce 0
+{
+  const viemSig = await account.signTransaction({
+    chainId: 1,
+    nonce: 0,
+    maxPriorityFeePerGas: 1000000000n,
+    maxFeePerGas: 20000000000n,
+    gas: 21000n,
+    to: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    type: "eip1559",
+  });
+
+  const cppTx = cppTxResults.get("tx_simple");
+  const match = viemSig.toLowerCase() === ("0x" + cppTx).toLowerCase();
+  if (match) {
+    console.log(`[PASS] sign_transaction(simple)`);
+    passed++;
+  } else {
+    console.log(`[FAIL] sign_transaction(simple)`);
+    console.log(`  viem: ${viemSig}`);
+    console.log(`  C++:  0x${cppTx}`);
+    failed++;
+  }
+}
+
+// tx_with_value: 1 ETH, nonce 7
+{
+  const viemSig = await account.signTransaction({
+    chainId: 1,
+    nonce: 7,
+    maxPriorityFeePerGas: 2000000000n,
+    maxFeePerGas: 50000000000n,
+    gas: 21000n,
+    to: "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    value: 1000000000000000000n, // 1 ETH
+    type: "eip1559",
+  });
+
+  const cppTx = cppTxResults.get("tx_with_value");
+  const match = viemSig.toLowerCase() === ("0x" + cppTx).toLowerCase();
+  if (match) {
+    console.log(`[PASS] sign_transaction(with_value)`);
+    passed++;
+  } else {
+    console.log(`[FAIL] sign_transaction(with_value)`);
+    console.log(`  viem: ${viemSig}`);
+    console.log(`  C++:  0x${cppTx}`);
     failed++;
   }
 }

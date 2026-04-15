@@ -1,0 +1,35 @@
+[tools]
+node = "latest"
+rust = "latest"
+meson = "latest"
+ninja = "latest"
+
+[tasks.setup]
+description = "Configure the meson build directory"
+run = "meson setup build"
+
+[tasks.build]
+description = "Build the project"
+depends = ["setup"]
+run = "meson compile -C build"
+
+[tasks.test]
+description = "Run C++ unit tests"
+depends = ["build"]
+run = "meson test -C build -v"
+
+[tasks."test:viem"]
+description = "Run viem cross-validation"
+depends = ["build"]
+dir = "tests/viem_compare"
+run = ["npm install", "npm test"]
+
+[tasks."test:alloy"]
+description = "Run alloy cross-validation"
+depends = ["build"]
+dir = "tests/alloy_compare"
+run = "cargo run -- ../../build/tests/test_cross_validate"
+
+[tasks."test:all"]
+description = "Run all tests including cross-validation"
+depends = ["test", "test:viem", "test:alloy"]
