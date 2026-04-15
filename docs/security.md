@@ -16,10 +16,6 @@ Moving a `SigningKey` copies the secret to the destination, then immediately zer
 
 If key validation fails during construction (invalid secp256k1 key), the secret is zeroed before the exception propagates. This matters because C++ does not call destructors for partially-constructed objects.
 
-### No intermediate copies
-
-The hex constructor parses directly into the internal secret buffer. Earlier versions used a `Hash` temporary that was never zeroed -- this was identified and fixed in the security audit.
-
 ## Nonce protection
 
 After every `sign()` call, the raw secp256k1 signature struct (which contains the nonce `k`) and the serialized output buffer are both zeroed. Recovering the nonce from a single signature allows full private key recovery.
