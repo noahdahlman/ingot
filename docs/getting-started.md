@@ -18,32 +18,22 @@ mise trust
 mise install
 ```
 
-### 2. Install Conan dependencies
+### 2. Build
 
-A clang profile is included in the repo:
-
-```bash
-conan install . --profile=conan_clang_profile --output-folder=build --build=missing
-```
-
-### 3. Build
+A clang profile is included in the repo. Conan handles dependency installation, meson configuration, and compilation:
 
 ```bash
-CC=clang CXX=clang++ meson setup build \
-  --native-file build/conan_meson_native.ini \
-  --pkg-config-path build \
-  --wrap-mode=default
-
-ninja -C build
+conan install . -pr conan_clang_profile -of build --build=missing
+conan build . -of build
 ```
 
 libsecp256k1 is fetched and built automatically as a meson subproject on first configure.
 
-### 4. Test
+### 3. Test
 
 ```bash
 # Run doctest unit tests
-ninja -C build test
+meson test -C build -v
 
 # Run viem cross-validation (requires Node.js)
 cd tests/viem_compare

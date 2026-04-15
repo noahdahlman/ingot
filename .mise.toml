@@ -12,13 +12,13 @@ CC = "clang"
 CXX = "clang++"
 
 [tasks.setup]
-description = "Configure the meson build directory"
-run = "meson setup build"
+description = "Install dependencies and configure the build"
+run = "conan install . -pr conan_clang_profile -of build --build=missing"
 
 [tasks.build]
 description = "Build the project"
 depends = ["setup"]
-run = "meson compile -C build"
+run = "conan build . -of build"
 
 [tasks.test]
 description = "Run C++ unit tests"

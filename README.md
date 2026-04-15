@@ -37,9 +37,8 @@ mise run test:all
 ### Manual setup
 
 ```bash
-meson setup build
-meson compile -C build
-meson test -C build -v
+conan install . -pr conan_clang_profile -of build --build=missing
+conan build . -of build
 ```
 
 ## Testing
