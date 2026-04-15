@@ -1,6 +1,6 @@
 # ingot
 
-A minimal, audited Ethereum signing library for C++20.
+A minimal Ethereum signing library for C++20.
 
 ```cpp
 #include <ingot/signing.hpp>
