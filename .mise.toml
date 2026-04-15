@@ -2,7 +2,6 @@
 experimental = true
 
 [tools]
-clang = "latest"
 bun = "latest"
 rust = "latest"
 uv = "latest"
