@@ -1,0 +1,8 @@
+[wrap-git]
+url = https://github.com/bitcoin-core/secp256k1.git
+revision = v0.6.0
+depth = 1
+patch_directory = libsecp256k1
+
+[provide]
+libsecp256k1 = libsecp256k1_dep

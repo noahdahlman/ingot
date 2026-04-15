@@ -1,0 +1,6 @@
+[tools]
+node = "22"
+
+[env]
+CC = "clang"
+CXX = "clang++"

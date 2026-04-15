@@ -1,0 +1,11 @@
+{
+  "name": "ingot-viem-compare",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types compare.ts"
+  },
+  "dependencies": {
+    "viem": "^2.0.0"
+  }
+}
