@@ -35,10 +35,10 @@ libsecp256k1 is fetched and built automatically as a meson subproject on first c
 # Run doctest unit tests
 meson test -C build -v
 
-# Run viem cross-validation (requires Node.js)
+# Run viem cross-validation (requires Bun)
 cd tests/viem_compare
-npm install
-node --experimental-strip-types compare.ts
+bun install
+bun run compare.ts
 ```
 
 ## Using ingot in your project

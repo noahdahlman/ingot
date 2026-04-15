@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --experimental-strip-types compare.ts"
+    "test": "bun run compare.ts"
   },
   "dependencies": {
     "viem": "^2.0.0"
