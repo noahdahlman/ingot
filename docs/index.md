@@ -25,19 +25,26 @@ auto addr = key.address();
 - [doctest](https://github.com/doctest/doctest) (via Conan, test only)
 
 ## Quick start
-
 ```bash
+# Install clang
+
+# Ubuntu
+sudo apt upgrade && sudo apt install -y clang
+
+# Arch
+sudo pacman -S clang
+
+# Install mise
+curl https://mise.run | sh
+
+mise install
+mise run test:all
+
 # Install dependencies
-conan install . --profile=conan_clang_profile --output-folder=build --build=missing
+conan install . --profile=conan_clang_profile -of build --build=missing
 
-# Configure and build
-CC=clang CXX=clang++ meson setup build \
-  --native-file build/conan_meson_native.ini \
-  --pkg-config-path build \
-  --wrap-mode=default
-
-ninja -C build
-ninja -C build test
+# Build
+conan build -of build .
 ```
 
 See [Getting Started](getting-started.md) for detailed setup instructions.

@@ -27,9 +27,20 @@ auto raw  = key.sign_transaction(tx);         // EIP-1559 transaction signing
 
 ## Quick start
 
-[mise](https://mise.jdx.dev/) manages all toolchain dependencies (meson, ninja, node, rust):
+[mise](https://mise.jdx.dev/) manages all toolchain dependencies except clang (meson, ninja, node, rust):
 
 ```bash
+# install clang
+
+# ubuntu
+sudo apt upgrade && sudo apt install -y clang
+
+# arch
+sudo pacman -S clang
+
+# install mise
+curl https://mise.run | sh
+
 mise install
 mise run test:all
 ```
