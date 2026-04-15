@@ -1,7 +1,7 @@
 [tools]
 node = "22"
 rust = "latest"
-"uv:meson" = "1.11"
+meson = "1.11"
 ninja = "1.13"
 
 [env]
