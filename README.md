@@ -38,7 +38,7 @@ mise run test:all
 
 ```bash
 conan install . -pr conan_clang_profile -of build --build=missing
-conan build . -of build
+conan build . -pr conan_clang_profile -of build
 ```
 
 ## Testing

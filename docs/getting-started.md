@@ -24,7 +24,7 @@ A clang profile is included in the repo. Conan handles dependency installation, 
 
 ```bash
 conan install . -pr conan_clang_profile -of build --build=missing
-conan build . -of build
+conan build . -pr conan_clang_profile -of build
 ```
 
 libsecp256k1 is fetched and built automatically as a meson subproject on first configure.

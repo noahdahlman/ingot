@@ -2,9 +2,11 @@
 experimental = true
 
 [tools]
+clang = "latest"
 bun = "latest"
 rust = "latest"
 uv = "latest"
+conan = "latest"
 meson = "latest"
 ninja = "latest"
 
@@ -19,7 +21,7 @@ run = "conan install . -pr conan_clang_profile -of build --build=missing"
 [tasks.build]
 description = "Build the project"
 depends = ["setup"]
-run = "conan build . -of build"
+run = "conan build . -pr conan_clang_profile -of build"
 
 [tasks.test]
 description = "Run C++ unit tests"
