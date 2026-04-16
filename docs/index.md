@@ -17,7 +17,7 @@ auto addr = key.address();
 - **EIP-191** `personal_sign` out of the box
 - **Defensive** -- secret key zeroing on destruction, move, and constructor throw; nonce cleanup after signing; `explicit_bzero` for guaranteed memory wipe
 - **Fast** -- keccak-f1600 compiles to fully unrolled straight-line `rolq` instructions, matching tiny_sha3 performance
-- **Cross-validated** -- signatures verified identical to [viem](https://viem.sh/)
+- **Cross-validated** -- signatures verified identical to [viem](https://viem.sh/) and [alloy](https://github.com/alloy-rs/alloy)
 
 ## Dependencies
 
@@ -25,26 +25,12 @@ auto addr = key.address();
 - [doctest](https://github.com/doctest/doctest) (via Conan, test only)
 
 ## Quick start
+
+Install `clang` and [mise](https://mise.jdx.dev/) from your OS package manager, then:
+
 ```bash
-# Install clang
-
-# Ubuntu
-sudo apt upgrade && sudo apt install -y clang
-
-# Arch
-sudo pacman -S clang
-
-# Install mise
-curl https://mise.run | sh
-
-mise install
-mise run test:all
-
-# Install dependencies
-conan install . --profile=conan_clang_profile -of build --build=missing
-
-# Build
-conan build -of build .
+mise install        # fetches meson, ninja, conan, bun, rust
+mise run test:all   # builds the library and runs all test suites
 ```
 
-See [Getting Started](getting-started.md) for detailed setup instructions.
+See [Getting Started](getting-started.md) for Ubuntu/Arch setup, manual setup without mise, and integration instructions.

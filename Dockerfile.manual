@@ -1,0 +1,41 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Same prerequisites as the manual-setup section of the README: clang +
+# meson/ninja from apt, conan from pipx (Ubuntu 24.04's python is PEP 668
+# externally-managed), bun and rustup from their upstream installers.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        clang \
+        libstdc++-14-dev \
+        meson \
+        ninja-build \
+        pipx \
+        pkg-config \
+        git \
+        curl \
+        unzip \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pipx install conan
+ENV PATH="/root/.local/bin:${PATH}"
+
+RUN curl -fsSL https://bun.sh/install | bash
+ENV PATH="/root/.bun/bin:${PATH}"
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+    | sh -s -- -y --default-toolchain stable --profile minimal
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+ENV CC=clang CXX=clang++
+
+WORKDIR /src
+COPY . .
+
+RUN conan profile detect --exist-ok \
+ && conan install . -of build --build=missing \
+ && conan build   . -of build \
+ && meson test -C build -v \
+ && ( cd tests/viem_compare  && bun install && bun run compare.ts ) \
+ && ( cd tests/alloy_compare && cargo run -- ../../build/tests/test_cross_validate )

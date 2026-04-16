@@ -1,6 +1,9 @@
 [settings]
 experimental = true
 
+# Clang is installed via the OS package manager (see README), not mise.
+# mise manages the build tooling (meson/ninja/conan) and the cross-validation
+# runtimes (bun, rust).
 [tools]
 bun = "latest"
 rust = "latest"
@@ -14,13 +17,16 @@ CC = "clang"
 CXX = "clang++"
 
 [tasks.setup]
-description = "Install dependencies and configure the build"
-run = "conan install . -pr conan_clang_profile -of build --build=missing"
+description = "Install C++ dependencies and configure the build"
+run = [
+  "conan profile detect --exist-ok",
+  "conan install . -of build --build=missing",
+]
 
 [tasks.build]
 description = "Build the project"
 depends = ["setup"]
-run = "conan build . -pr conan_clang_profile -of build"
+run = "conan build . -of build"
 
 [tasks.test]
 description = "Run C++ unit tests"
@@ -42,3 +48,7 @@ run = "cargo run -- ../../build/tests/test_cross_validate"
 [tasks."test:all"]
 description = "Run all tests including cross-validation"
 depends = ["test", "test:viem", "test:alloy"]
+
+[tasks.docs]
+description = "Serve the docs site locally with hot reload"
+run = "uvx zensical serve"
