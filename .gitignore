@@ -5,3 +5,10 @@ subprojects/doctest-*/
 subprojects/packagecache/
 tests/viem_compare/node_modules/
 **/target
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
