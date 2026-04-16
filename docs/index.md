@@ -12,12 +12,14 @@ auto addr = key.address();
 ```
 
 ## Features
+- **Simple API** -- `SigningKey`, `Address`, `Signature`, `Transaction`
+- **EIP-191** `personal_sign`
+- **EIP-1559** transaction signing (type 2 envelopes)
+- **RLP encoding** for Ethereum serialization
+- **Defensive** -- secret key zeroing on destruction, move, and constructor throw; nonce cleanup; `explicit_bzero`
+- **Fast** -- keccak-f1600 fully unrolls to straight-line `rolq` instructions
+- **Cross-validated** against [viem](https://viem.sh/) and [alloy](https://github.com/alloy-rs/alloy)
 
-- **Simple API** -- `SigningKey`, `Address`, `Signature`, and you're done
-- **EIP-191** `personal_sign` out of the box
-- **Defensive** -- secret key zeroing on destruction, move, and constructor throw; nonce cleanup after signing; `explicit_bzero` for guaranteed memory wipe
-- **Fast** -- keccak-f1600 compiles to fully unrolled straight-line `rolq` instructions, matching tiny_sha3 performance
-- **Cross-validated** -- signatures verified identical to [viem](https://viem.sh/) and [alloy](https://github.com/alloy-rs/alloy)
 
 ## Dependencies
 

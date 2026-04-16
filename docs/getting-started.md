@@ -48,7 +48,7 @@ If you prefer to install the toolchain yourself, you need:
 - meson, ninja
 - conan 2
 
-# for cross validation tests
+### for cross validation tests
 - bun
 - Rust + cargo
 
