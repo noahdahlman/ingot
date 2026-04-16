@@ -2,53 +2,72 @@
 
 ## Prerequisites
 
-- **Clang** with C++20 support
-- **Meson** and **Ninja**
-- **Conan** 2.x
-- **mise** (optional, for environment management)
+- **clang** with C++20 support and libstdc++
+- **[mise](https://mise.jdx.dev/)**, which manages the rest of the toolchain (meson, ninja, conan, bun, rust)
 
-## Setup
+### Ubuntu / Debian
 
-### 1. Environment
+```bash
+sudo apt update
+sudo apt install -y clang libstdc++-14-dev pkg-config git curl ca-certificates
+curl https://mise.run | sh
+```
 
-If using mise, the included `.mise.toml` sets `CC=clang` and `CXX=clang++` automatically:
+### Arch
+
+```bash
+sudo pacman -S --needed clang mise git
+```
+
+## Build and test
+
+From the repo root:
 
 ```bash
 mise trust
 mise install
+mise run test:all
 ```
 
-### 2. Install Conan dependencies
-
-A clang profile is included in the repo:
+`mise install` fetches the build tools. `mise run test:all` runs the `setup`, `build`, `test`, `test:viem`, and `test:alloy` tasks in order.
 
 ```bash
-conan install . --profile=conan_clang_profile --output-folder=build --build=missing
+mise run setup       # conan profile detect + conan install
+mise run build       # Compile the library
+mise run test        # C++ unit tests (doctest)
+mise run test:viem   # Cross-validate against viem
+mise run test:alloy  # Cross-validate against alloy
 ```
 
-### 3. Build
+libsecp256k1 is fetched and built automatically as a meson subproject on the first configure.
+
+## Manual setup (without mise)
+
+If you prefer to install the toolchain yourself, you need:
+- clang (C++20)
+- meson, ninja
+- conan 2
+
+# for cross validation tests
+- bun
+- Rust + cargo
+
+Then, from the repo root:
 
 ```bash
-CC=clang CXX=clang++ meson setup build \
-  --native-file build/conan_meson_native.ini \
-  --pkg-config-path build \
-  --wrap-mode=default
+export CC=clang CXX=clang++
+conan profile detect --exist-ok
+conan install . -of build --build=missing
+conan build   . -of build
 
-ninja -C build
-```
+# C++ unit tests
+meson test -C build -v
 
-libsecp256k1 is fetched and built automatically as a meson subproject on first configure.
+# viem cross-validation
+( cd tests/viem_compare && bun install && bun run compare.ts )
 
-### 4. Test
-
-```bash
-# Run doctest unit tests
-ninja -C build test
-
-# Run viem cross-validation (requires Node.js)
-cd tests/viem_compare
-npm install
-node --experimental-strip-types compare.ts
+# alloy cross-validation
+( cd tests/alloy_compare && cargo run -- ../../build/tests/test_cross_validate )
 ```
 
 ## Using ingot in your project

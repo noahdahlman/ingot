@@ -94,11 +94,9 @@ ECDSA signature with recovery id.
 
 ### Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `r` | `FixedBytes<32>` | First 32 bytes of the signature |
-| `s` | `FixedBytes<32>` | Second 32 bytes of the signature |
-| `v` | `uint8_t` | Recovery id (0 or 1) |
+- `r` -- `FixedBytes<32>`, first 32 bytes of the signature
+- `s` -- `FixedBytes<32>`, second 32 bytes of the signature
+- `v` -- `uint8_t`, recovery id (0 or 1)
 
 ### Methods
 
@@ -135,13 +133,11 @@ explicit FixedBytes(std::string_view hex);
 
 ### Methods
 
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `data()` | `const uint8_t*` | Pointer to underlying bytes |
-| `size()` | `std::size_t` | Always `N` |
-| `begin()` / `end()` | iterator | For range-based iteration |
-| `to_hex()` | `std::string` | Hex string with `0x` prefix |
-| `operator<=>` | | Three-way comparison (all comparison operators) |
+- `data() -> const uint8_t*` -- pointer to underlying bytes
+- `size() -> std::size_t` -- always `N`
+- `begin()` / `end()` -- iterators for range-based iteration
+- `to_hex() -> std::string` -- hex string with `0x` prefix
+- `operator<=>` -- three-way comparison (all comparison operators)
 
 ---
 

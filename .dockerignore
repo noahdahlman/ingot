@@ -1,0 +1,6 @@
+build/
+target/
+node_modules/
+.git/
+tests/viem_compare/bun.lock
+tests/alloy_compare/target/

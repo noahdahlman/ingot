@@ -1,24 +1,32 @@
 [settings]
 experimental = true
 
+# Clang is installed via the OS package manager (see README), not mise.
+# mise manages the build tooling (meson/ninja/conan) and the cross-validation
+# runtimes (bun, rust).
 [tools]
-node = "22"
+bun = "latest"
 rust = "latest"
-meson = "1.11"
-ninja = "1.13"
+uv = "latest"
+conan = "latest"
+meson = "latest"
+ninja = "latest"
 
 [env]
 CC = "clang"
 CXX = "clang++"
 
 [tasks.setup]
-description = "Configure the meson build directory"
-run = "meson setup build"
+description = "Install C++ dependencies and configure the build"
+run = [
+  "conan profile detect --exist-ok",
+  "conan install . -of build --build=missing",
+]
 
 [tasks.build]
 description = "Build the project"
 depends = ["setup"]
-run = "meson compile -C build"
+run = "conan build . -of build"
 
 [tasks.test]
 description = "Run C++ unit tests"
@@ -29,7 +37,7 @@ run = "meson test -C build -v"
 description = "Run viem cross-validation"
 depends = ["build"]
 dir = "tests/viem_compare"
-run = ["npm install", "npm test"]
+run = ["bun install", "bun run compare.ts"]
 
 [tasks."test:alloy"]
 description = "Run alloy cross-validation"
@@ -40,3 +48,7 @@ run = "cargo run -- ../../build/tests/test_cross_validate"
 [tasks."test:all"]
 description = "Run all tests including cross-validation"
 depends = ["test", "test:viem", "test:alloy"]
+
+[tasks.docs]
+description = "Serve the docs site locally with hot reload"
+run = "uvx zensical serve"
