@@ -16,6 +16,22 @@
 
 namespace ingot {
 
+namespace detail {
+
+[[noreturn]] inline void throw_secp256k1(const char* what) {
+    throw std::runtime_error(what);
+}
+
+inline void ensure_ok(int result, const char* what) {
+    if (!result) throw_secp256k1(what);
+}
+
+inline void ensure_non_null(const void* p, const char* what) {
+    if (!p) throw_secp256k1(what);
+}
+
+} // namespace detail
+
 struct Secp256k1 {};
 
 template <typename Curve>
@@ -74,11 +90,11 @@ public:
     // Sign a raw 32-byte message hash
     [[nodiscard]] Signature sign(const Hash& msg_hash) const {
         secp256k1_ecdsa_recoverable_signature raw_sig;
-        if (!secp256k1_ecdsa_sign_recoverable(
+        detail::ensure_ok(
+            secp256k1_ecdsa_sign_recoverable(
                 ctx(), &raw_sig, msg_hash.data(), secret_.data(),
-                nullptr, nullptr)) {
-            throw std::runtime_error("secp256k1 signing failed");
-        }
+                nullptr, nullptr),
+            "secp256k1 signing failed");
 
         uint8_t out[64];
         int recid;
@@ -154,8 +170,9 @@ public:
     // Derive the Ethereum address from this key's public key
     [[nodiscard]] Address address() const {
         secp256k1_pubkey pubkey;
-        if (!secp256k1_ec_pubkey_create(ctx(), &pubkey, secret_.data()))
-            throw std::runtime_error("failed to derive public key");
+        detail::ensure_ok(
+            secp256k1_ec_pubkey_create(ctx(), &pubkey, secret_.data()),
+            "failed to derive public key");
 
         uint8_t serialized[65];
         std::size_t len = 65;
@@ -175,7 +192,7 @@ private:
     static secp256k1_context* ctx() {
         static secp256k1_context* c = [] {
             auto* p = secp256k1_context_create(SECP256K1_CONTEXT_SIGN);
-            if (!p) throw std::runtime_error("failed to create secp256k1 context");
+            detail::ensure_non_null(p, "failed to create secp256k1 context");
             return p;
         }();
         return c;
