@@ -5,7 +5,7 @@ from conan.tools.gnu import PkgConfigDeps
 
 class IngotConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
-    requires = "doctest/2.4.11"
+    requires = "intx/0.15.0"
 
     def configure(self):
         # meson.build pins cpp_std=c++20; force the matching value here so

@@ -11,7 +11,10 @@ project('ingot', 'cpp', 'c',
 secp256k1_dep = dependency('libsecp256k1',
   fallback: ['libsecp256k1', 'libsecp256k1_dep'],
 )
-doctest_dep = dependency('doctest', required: true)
+doctest_dep = dependency('doctest',
+  fallback: ['doctest', 'doctest_dep'],
+)
+intx_dep = dependency('intx', required: true)
 
 # Library
 ingot_inc = include_directories('include')
@@ -25,7 +28,7 @@ ingot_lib = static_library('ingot',
 ingot_dep = declare_dependency(
   link_with: ingot_lib,
   include_directories: ingot_inc,
-  dependencies: [secp256k1_dep],
+  dependencies: [secp256k1_dep, intx_dep],
 )
 
 # Tests

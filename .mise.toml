@@ -49,6 +49,22 @@ run = "cargo run -- ../../build/tests/test_cross_validate"
 description = "Run all tests including cross-validation"
 depends = ["test", "test:viem", "test:alloy"]
 
+[tasks.coverage]
+description = "Build with LLVM source-based coverage, print report, emit HTML"
+# Coverage needs clang + LLVM instrumentation; conan install/build both re-run
+# generate(), so the same -pr / -c flags are passed twice.
+run = [
+  "conan install . -of build-coverage -pr clang -pr:b clang -s build_type=Debug -c tools.build:cxxflags=\"['-fprofile-instr-generate','-fcoverage-mapping','-O0','-g']\" -c tools.build:cflags=\"['-fprofile-instr-generate','-fcoverage-mapping','-O0','-g']\" -c tools.build:sharedlinkflags=\"['-fprofile-instr-generate']\" -c tools.build:exelinkflags=\"['-fprofile-instr-generate']\" --build=missing",
+  "conan build . -of build-coverage -pr clang -pr:b clang -s build_type=Debug -c tools.build:cxxflags=\"['-fprofile-instr-generate','-fcoverage-mapping','-O0','-g']\" -c tools.build:cflags=\"['-fprofile-instr-generate','-fcoverage-mapping','-O0','-g']\" -c tools.build:sharedlinkflags=\"['-fprofile-instr-generate']\" -c tools.build:exelinkflags=\"['-fprofile-instr-generate']\"",
+  "rm -rf build-coverage/html build-coverage/*.profraw build-coverage/cov.profdata",
+  "LLVM_PROFILE_FILE=build-coverage/signing.profraw build-coverage/tests/test_signing",
+  "LLVM_PROFILE_FILE=build-coverage/units.profraw build-coverage/tests/test_units",
+  "llvm-profdata merge -sparse build-coverage/signing.profraw build-coverage/units.profraw -o build-coverage/cov.profdata",
+  "llvm-cov report build-coverage/tests/test_signing -object=build-coverage/tests/test_units -instr-profile=build-coverage/cov.profdata include/ingot src",
+  "llvm-cov show build-coverage/tests/test_signing -object=build-coverage/tests/test_units -instr-profile=build-coverage/cov.profdata -format=html -output-dir=build-coverage/html -show-line-counts-or-regions -show-expansions include/ingot src",
+  "echo 'HTML report: build-coverage/html/index.html'",
+]
+
 [tasks.docs]
 description = "Serve the docs site locally with hot reload"
 run = "uvx zensical serve"
