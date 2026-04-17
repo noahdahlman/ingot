@@ -11,7 +11,9 @@ project('ingot', 'cpp', 'c',
 secp256k1_dep = dependency('libsecp256k1',
   fallback: ['libsecp256k1', 'libsecp256k1_dep'],
 )
-doctest_dep = dependency('doctest', required: true)
+doctest_dep = dependency('doctest',
+  fallback: ['doctest', 'doctest_dep'],
+)
 
 # Library
 ingot_inc = include_directories('include')
