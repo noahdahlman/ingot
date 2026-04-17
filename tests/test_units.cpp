@@ -6,6 +6,15 @@
 
 using namespace ingot::literals;
 
+TEST_CASE("detail helpers round-trip at runtime") {
+    auto v = ingot::detail::parse_decimal("123'456");
+    auto words = ingot::detail::to_words(v);
+    CHECK(words[0] == 123456);
+    CHECK(words[1] == 0);
+    auto back = ingot::detail::from_words(words);
+    CHECK(back == v);
+}
+
 TEST_CASE("wei literal") {
     ingot::Wei w = 42_wei;
     uint64_t as_u64 = w;
